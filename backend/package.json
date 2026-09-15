@@ -1,0 +1,29 @@
+{
+  "name": "aa-creations-backend",
+  "version": "0.1.0",
+  "description": "A&A Creations — multi-tool SaaS platform API (accounts, tiers, billing) + Invoice Generator",
+  "type": "module",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "migrate": "node src/db/migrate.js",
+    "cron:recurring-invoices": "node src/jobs/generateRecurringInvoices.js",
+    "setup:razorpay-plans": "node src/jobs/setupRazorpayPlans.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "jsonwebtoken": "^9.0.2",
+    "pdfkit": "^0.15.0",
+    "pg": "^8.11.5",
+    "razorpay": "^2.9.8",
+    "stripe": "^16.9.0",
+    "zod": "^3.23.8"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

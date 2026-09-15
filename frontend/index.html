@@ -1,0 +1,1298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>A&amp;A Creations — Tools</title>
+<script src="config.js"></script>
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<style>
+  :root {
+    --bg: #f4f5f7; --card: #ffffff; --text: #1c2333; --text2: #64748b;
+    --border: #e2e6ec; --accent: #4f46e5; --accent-dark: #4338ca;
+    --green: #16a34a; --amber: #d97706; --red: #dc2626; --gray: #6b7280;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: -apple-system, Segoe UI, Roboto, Arial, sans-serif; background: var(--bg); color: var(--text); }
+  a { color: var(--accent); }
+  button { cursor: pointer; font-family: inherit; }
+  .btn { padding: 8px 16px; border-radius: 8px; border: 1px solid var(--border); background: var(--card); color: var(--text); font-size: 14px; font-weight: 500; }
+  .btn:hover { background: #f0f1f5; }
+  .btn-primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .btn-primary:hover { background: var(--accent-dark); }
+  .btn-danger { color: var(--red); border-color: #fca5a5; }
+  .btn-sm { padding: 5px 10px; font-size: 12px; }
+  input, select, textarea { padding: 8px 10px; border-radius: 6px; border: 1px solid var(--border); font-size: 14px; font-family: inherit; width: 100%; }
+  label { font-size: 12px; color: var(--text2); font-weight: 600; display: block; margin-bottom: 4px; }
+  .field { margin-bottom: 12px; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
+  .topbar { display: flex; justify-content: space-between; align-items: center; padding: 14px 24px; background: var(--card); border-bottom: 1px solid var(--border); }
+  .topbar b { font-size: 17px; }
+  .container { max-width: 1080px; margin: 0 auto; padding: 24px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
+  .badge { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .03em; }
+  .badge-free { background: #eef2ff; color: var(--accent); }
+  .badge-pro { background: #fef3c7; color: var(--amber); }
+  .badge-soon { background: #f1f5f9; color: var(--gray); }
+  .badge-owner { background: #dcfce7; color: var(--green); }
+  .status-draft { background:#f1f5f9; color:#475569; }
+  .status-sent { background:#e0f2fe; color:#0369a1; }
+  .status-paid { background:#dcfce7; color:#15803d; }
+  .status-overdue { background:#fee2e2; color:#b91c1c; }
+  .status-void { background:#f1f5f9; color:#94a3b8; text-decoration: line-through; }
+  .status-pill { padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+  .progress { height: 6px; border-radius: 999px; background: #eef0f4; overflow: hidden; margin: 8px 0; }
+  .progress > div { height: 100%; background: var(--accent); }
+  .progress.full > div { background: var(--red); }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { text-align: left; padding: 9px 8px; border-bottom: 1px solid var(--border); }
+  th { color: var(--text2); font-size: 12px; text-transform: uppercase; letter-spacing: .03em; }
+  .row { display: flex; gap: 10px; align-items: flex-end; }
+  .row > * { flex: 1; }
+  .muted { color: var(--text2); font-size: 13px; }
+  .modal-backdrop { position: fixed; inset: 0; background: rgba(15,23,42,.45); display: flex; align-items: center; justify-content: center; z-index: 50; }
+  .modal { background: #fff; border-radius: 14px; padding: 26px; width: 420px; max-width: 92vw; max-height: 85vh; overflow-y: auto; }
+  .toast { position: fixed; top: 18px; right: 18px; z-index: 100; padding: 12px 18px; border-radius: 8px; background: #1c2333; color: #fff; font-size: 14px; box-shadow: 0 6px 20px rgba(0,0,0,.15); }
+  .toast.error { background: var(--red); }
+  .toast.success { background: var(--green); }
+  .link-btn { background: none; border: none; color: var(--accent); font-size: 13px; padding: 0; }
+  .item-row { display: grid; grid-template-columns: 1fr 70px 110px 32px; gap: 8px; margin-bottom: 8px; align-items: center; }
+  .auth-wrap { min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+  .auth-card { width: 380px; max-width: 92vw; }
+  .tabs { display: flex; gap: 4px; margin-bottom: 18px; border-bottom: 1px solid var(--border); }
+  .tabs button { background: none; border: none; padding: 10px 4px; margin-right: 18px; font-size: 14px; font-weight: 600; color: var(--text2); border-bottom: 2px solid transparent; }
+  .tabs button.active { color: var(--accent); border-color: var(--accent); }
+  .two-col { display: grid; grid-template-columns: 280px 1fr; gap: 20px; align-items: start; }
+  @media (max-width: 800px) { .two-col { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+const API_BASE = window.AACREATIONS_API_BASE || 'http://localhost:4000/api';
+const $ = (id) => document.getElementById(id);
+const app = $('app');
+
+let TOKEN = localStorage.getItem('aac_token') || null;
+let USER = JSON.parse(localStorage.getItem('aac_user') || 'null');
+let VIEW = 'dashboard';
+let TOOLS = [];
+let IG_CLIENTS = [];
+let IG_INVOICES = [];
+let IG_USAGE = null;
+let IG_LINE_ITEMS = [{ description: '', quantity: 1, unitPrice: '' }];
+
+function escapeHtml(s) {
+  return String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+}
+function money(cents, currency) {
+  const symbols = { usd: '$', eur: '€', gbp: '£', inr: '₹', ngn: '₦' };
+  const sym = symbols[(currency || 'usd').toLowerCase()] || ((currency || 'USD').toUpperCase() + ' ');
+  return `${sym}${(Number(cents || 0) / 100).toFixed(2)}`;
+}
+// API dates come back through JSON.stringify already as ISO strings (Date's
+// own toJSON runs server-side), never as Date objects on this side — so
+// just slice the string instead of trying to re-parse it.
+function dateOnly(value) {
+  return typeof value === 'string' ? value.slice(0, 10) : new Date(value).toISOString().slice(0, 10);
+}
+function showToast(msg, type = '') {
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  el.textContent = msg;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 3200);
+}
+
+async function apiFetch(path, opts = {}) {
+  const headers = Object.assign({}, opts.headers || {});
+  if (opts.body && !(opts.body instanceof FormData)) headers['Content-Type'] = 'application/json';
+  if (TOKEN) headers['Authorization'] = `Bearer ${TOKEN}`;
+  const res = await fetch(`${API_BASE}${path}`, { ...opts, headers });
+  if (res.status === 401 && TOKEN) {
+    signOut();
+    throw new Error('Session expired — please sign in again.');
+  }
+  const contentType = res.headers.get('content-type') || '';
+  const data = contentType.includes('application/json') ? await res.json() : null;
+  if (!res.ok) {
+    const err = new Error((data && data.error) || `Request failed (${res.status})`);
+    err.status = res.status;
+    throw err;
+  }
+  return data;
+}
+
+function saveSession(token, user) {
+  TOKEN = token; USER = user;
+  localStorage.setItem('aac_token', token);
+  localStorage.setItem('aac_user', JSON.stringify(user));
+}
+function signOut() {
+  TOKEN = null; USER = null;
+  localStorage.removeItem('aac_token'); localStorage.removeItem('aac_user');
+  VIEW = 'dashboard';
+  renderRoot();
+}
+
+// ---------------------------------------------------------------- Auth ----
+let AUTH_MODE = 'login';
+function renderAuth() {
+  app.innerHTML = `
+    <div class="auth-wrap">
+      <div class="card auth-card">
+        <h2 style="margin-top:0">A&amp;A Creations</h2>
+        <p class="muted" style="margin-top:-8px">Professional tools for your business — start free, upgrade any time.</p>
+        <div class="tabs">
+          <button id="tabLogin" class="${AUTH_MODE==='login'?'active':''}">Sign in</button>
+          <button id="tabSignup" class="${AUTH_MODE==='signup'?'active':''}">Create account</button>
+        </div>
+        <form id="authForm">
+          ${AUTH_MODE === 'signup' ? `
+            <div class="field"><label>Your name</label><input id="af_name" required></div>
+            <div class="field"><label>Company name (optional)</label><input id="af_company"></div>
+          ` : ''}
+          <div class="field"><label>Email</label><input id="af_email" type="email" required></div>
+          <div class="field"><label>Password</label><input id="af_password" type="password" minlength="8" required></div>
+          <button class="btn btn-primary" style="width:100%" type="submit">${AUTH_MODE === 'signup' ? 'Create account' : 'Sign in'}</button>
+        </form>
+      </div>
+    </div>
+  `;
+  $('tabLogin').onclick = () => { AUTH_MODE = 'login'; renderAuth(); };
+  $('tabSignup').onclick = () => { AUTH_MODE = 'signup'; renderAuth(); };
+  $('authForm').onsubmit = async (e) => {
+    e.preventDefault();
+    const email = $('af_email').value.trim();
+    const password = $('af_password').value;
+    try {
+      let data;
+      if (AUTH_MODE === 'signup') {
+        const displayName = $('af_name').value.trim();
+        const companyName = $('af_company').value.trim();
+        data = await apiFetch('/auth/signup', { method: 'POST', body: JSON.stringify({ email, password, displayName, companyName }) });
+      } else {
+        data = await apiFetch('/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) });
+      }
+      saveSession(data.token, data.user);
+      showToast(`Welcome${data.user.isOwner ? ' back, owner' : ''}!`, 'success');
+      await renderRoot();
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
+  };
+}
+
+// -------------------------------------------------------------- Layout ----
+function shell(inner) {
+  app.innerHTML = `
+    <div class="topbar">
+      <b>A&amp;A Creations</b>
+      <div style="display:flex; align-items:center; gap:14px;">
+        <span class="muted">${escapeHtml(USER.displayName)} ${USER.isOwner ? '<span class="badge badge-owner">Owner</span>' : ''}</span>
+        <button class="btn btn-sm" id="signOutBtn">Sign out</button>
+      </div>
+    </div>
+    <div class="container">${inner}</div>
+  `;
+  $('signOutBtn').onclick = signOut;
+}
+
+// ------------------------------------------------------------ Dashboard ----
+async function loadTools() {
+  const data = await apiFetch('/tools');
+  TOOLS = data.tools;
+}
+
+function tierBadge(tool) {
+  if (!tool.is_active) return `<span class="badge badge-soon">Coming soon</span>`;
+  if (tool.isOwnerBypass) return `<span class="badge badge-owner">Free (Owner)</span>`;
+  return tool.tier === 'pro' ? `<span class="badge badge-pro">Pro</span>` : `<span class="badge badge-free">Free</span>`;
+}
+
+async function renderDashboard() {
+  shell(`<p>Loading…</p>`);
+  try {
+    await loadTools();
+  } catch (err) {
+    showToast(err.message, 'error');
+    return;
+  }
+  const cards = TOOLS.map((t) => `
+    <div class="card">
+      <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+        <h3 style="margin:0 0 6px">${escapeHtml(t.name)}</h3>
+        ${tierBadge(t)}
+      </div>
+      <p class="muted">${escapeHtml(t.description)}</p>
+      ${t.is_active ? `<button class="btn btn-primary" data-open="${t.slug}">Open</button>
+        ${t.tier === 'free' && !t.isOwnerBypass ? `<button class="btn" style="margin-left:8px" data-upgrade="${t.slug}">Upgrade</button>` : ''}`
+        : `<button class="btn" disabled>Coming soon</button>`}
+    </div>
+  `).join('');
+  shell(`<h2>Your tools</h2><div class="grid">${cards}</div>`);
+  app.querySelectorAll('[data-open]').forEach((btn) => btn.onclick = () => openTool(btn.dataset.open));
+  app.querySelectorAll('[data-upgrade]').forEach((btn) => btn.onclick = () => openUpgradeModal(btn.dataset.upgrade));
+}
+
+const TOOL_RENDERERS = {
+  'invoice-generator': renderInvoiceGenerator,
+  'appointment-booking': () => renderAppointmentBooking(),
+  'expense-tracker': () => renderExpenseTracker(),
+  'membership-management': () => renderMembershipManagement(),
+  'leave-management': () => renderLeaveManagement(),
+  'inventory-management': () => renderInventoryManagement(),
+  'staff-attendance': () => renderStaffAttendance(),
+  'property-management': () => renderPropertyManagement(),
+  'queue-management': () => renderQueueManagement(),
+};
+function openTool(slug) {
+  const renderer = TOOL_RENDERERS[slug];
+  if (renderer) { VIEW = slug; renderer(); }
+}
+
+// Shared by every resource-capped tool view (max_services, max_members,
+// max_properties, ...) — the monthly-counter tools (Invoice Generator,
+// Appointment Booking's appointment count, Expense Tracker) have their own
+// /usage endpoint instead, since those reset every period rather than being
+// freed up by deleting a record.
+async function getToolMeta(slug) {
+  const { tools } = await apiFetch('/tools');
+  return tools.find((t) => t.slug === slug);
+}
+function capBannerHtml(toolSlug, tier, used, cap, label) {
+  if (cap == null) return `<span class="muted">Unlimited ${label} on your ${tier} plan.</span>`;
+  const atCap = used >= cap;
+  const pct = Math.min(100, Math.round((used / cap) * 100));
+  return `<span class="muted">${used} / ${cap} ${label} (${tier} plan)</span>
+    <div class="progress ${atCap ? 'full' : ''}"><div style="width:${pct}%"></div></div>
+    ${atCap ? `<button class="link-btn" data-upgrade="${toolSlug}">Upgrade to Pro for more ${label} &rarr;</button>` : ''}`;
+}
+function wireUpgradeLinks() {
+  app.querySelectorAll('[data-upgrade]').forEach((btn) => btn.onclick = () => openUpgradeModal(btn.dataset.upgrade));
+}
+function backLinkHtml() { return `<button class="link-btn" id="backBtn">&larr; Back to tools</button>`; }
+function wireBackLink() { $('backBtn').onclick = () => { VIEW = 'dashboard'; renderDashboard(); }; }
+
+// ------------------------------------------------------------ Upgrade -----
+async function openUpgradeModal(toolSlug) {
+  let tiers;
+  try {
+    const data = await apiFetch(`/tools/${toolSlug}/tiers`);
+    tiers = data.tiers;
+  } catch (err) { return showToast(err.message, 'error'); }
+
+  const currentTool = TOOLS.find((t) => t.slug === toolSlug);
+  const isPro = currentTool?.tier === 'pro' && !currentTool?.isOwnerBypass;
+
+  const backdrop = document.createElement('div');
+  backdrop.className = 'modal-backdrop';
+  backdrop.innerHTML = `
+    <div class="modal">
+      <h3 style="margin-top:0">${isPro ? 'Manage' : 'Upgrade'} ${escapeHtml(currentTool?.name || toolSlug)}</h3>
+      ${tiers.map((t) => `
+        <div class="card" style="margin-bottom:10px;">
+          <b style="text-transform:capitalize">${t.tier}</b> —
+          ${t.monthly_price_cents === 0 ? 'Free' : `${money(t.monthly_price_cents, t.currency)}/mo`}
+          <ul class="muted" style="padding-left:18px; margin:8px 0;">
+            ${Object.entries(t.limits).map(([k, v]) => `<li>${escapeHtml(k.replace(/_/g,' '))}: ${v === null ? 'unlimited' : String(v)}</li>`).join('')}
+          </ul>
+          ${t.monthly_price_cents > 0 && !isPro ? `<button class="btn btn-primary" data-checkout="${t.tier}">Upgrade to ${t.tier}</button>` : ''}
+          ${t.monthly_price_cents > 0 && isPro ? `<button class="btn btn-danger" id="cancelSub">Cancel Pro plan</button>` : ''}
+        </div>
+      `).join('')}
+      <button class="btn" id="closeModal" style="width:100%">Close</button>
+    </div>
+  `;
+  document.body.appendChild(backdrop);
+  $('closeModal').onclick = () => backdrop.remove();
+
+  backdrop.querySelectorAll('[data-checkout]').forEach((btn) => btn.onclick = () => startCheckout(toolSlug, btn.dataset.checkout, backdrop));
+
+  const cancelBtn = $('cancelSub');
+  if (cancelBtn) cancelBtn.onclick = async () => {
+    if (!confirm(`Cancel your Pro plan for ${currentTool?.name}? You'll drop back to the free plan's limits immediately.`)) return;
+    try {
+      await apiFetch('/billing/cancel', { method: 'POST', body: JSON.stringify({ toolSlug }) });
+      showToast('Subscription cancelled', 'success');
+      backdrop.remove();
+      if (VIEW === 'dashboard') renderDashboard();
+    } catch (err) { showToast(err.message, 'error'); }
+  };
+}
+
+function billingErrorMessage(err) {
+  return err.status === 501 ? "Billing isn't set up yet — ask the site owner to configure Razorpay or Stripe." : err.message;
+}
+
+async function startCheckout(toolSlug, tier, backdrop) {
+  let session;
+  try {
+    session = await apiFetch('/billing/checkout', { method: 'POST', body: JSON.stringify({ toolSlug, tier }) });
+  } catch (err) {
+    return showToast(billingErrorMessage(err), 'error');
+  }
+
+  if (session.provider === 'stripe') {
+    window.location.href = session.url;
+    return;
+  }
+
+  if (session.provider === 'razorpay') {
+    if (typeof Razorpay === 'undefined') {
+      return showToast('Could not load the payment widget — check your connection and try again.', 'error');
+    }
+    const rzp = new Razorpay({
+      key: session.keyId,
+      subscription_id: session.subscriptionId,
+      name: session.name,
+      description: session.description,
+      prefill: { email: session.prefillEmail, name: session.prefillName },
+      theme: { color: '#4f46e5' },
+      handler: async (response) => {
+        try {
+          await apiFetch('/billing/verify', { method: 'POST', body: JSON.stringify({
+            toolSlug,
+            razorpay_payment_id: response.razorpay_payment_id,
+            razorpay_subscription_id: response.razorpay_subscription_id,
+            razorpay_signature: response.razorpay_signature,
+          }) });
+          showToast('Upgrade successful — welcome to Pro!', 'success');
+          backdrop?.remove();
+          if (VIEW === 'dashboard') renderDashboard();
+          else openTool(VIEW);
+        } catch (err) {
+          showToast(err.message, 'error');
+        }
+      },
+      modal: { ondismiss: () => showToast('Upgrade cancelled — no changes made.', '') },
+    });
+    rzp.on('payment.failed', (resp) => showToast(`Payment failed: ${resp.error.description}`, 'error'));
+    rzp.open();
+  }
+}
+
+// ------------------------------------------------------- Invoice Generator
+async function loadInvoiceGeneratorData() {
+  const [clientsRes, invoicesRes, usageRes] = await Promise.all([
+    apiFetch('/invoice-generator/clients'),
+    apiFetch('/invoice-generator/invoices'),
+    apiFetch('/invoice-generator/invoices/usage'),
+  ]);
+  IG_CLIENTS = clientsRes.clients;
+  IG_INVOICES = invoicesRes.invoices;
+  IG_USAGE = usageRes.usage;
+}
+
+function statusPillHtml(status) {
+  return `<span class="status-pill status-${status}">${status}</span>`;
+}
+
+async function renderInvoiceGenerator() {
+  shell(`<p>Loading…</p>`);
+  try {
+    await loadInvoiceGeneratorData();
+  } catch (err) {
+    showToast(err.message, 'error');
+    return;
+  }
+
+  const usagePct = IG_USAGE.cap ? Math.min(100, Math.round((IG_USAGE.used / IG_USAGE.cap) * 100)) : 0;
+  const atCap = IG_USAGE.cap != null && IG_USAGE.used >= IG_USAGE.cap;
+  const usageHtml = IG_USAGE.cap == null
+    ? `<span class="muted">Unlimited invoices on your ${IG_USAGE.tier} plan.</span>`
+    : `<span class="muted">${IG_USAGE.used} / ${IG_USAGE.cap} invoices used this month (${IG_USAGE.tier} plan)</span>
+       <div class="progress ${atCap ? 'full' : ''}"><div style="width:${usagePct}%"></div></div>
+       ${atCap ? `<button class="link-btn" id="usageUpgrade">Upgrade to Pro for unlimited invoices →</button>` : ''}`;
+
+  const clientOptions = IG_CLIENTS.map((c) => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('');
+  const clientRows = IG_CLIENTS.map((c) => `
+    <tr><td>${escapeHtml(c.name)}<br><span class="muted">${escapeHtml(c.email || '')}</span></td>
+    <td><button class="link-btn" data-del-client="${c.id}">Delete</button></td></tr>
+  `).join('') || `<tr><td colspan="2" class="muted">No clients yet.</td></tr>`;
+
+  const invoiceRows = IG_INVOICES.map((inv) => `
+    <tr>
+      <td>${escapeHtml(inv.invoice_number)} ${inv.is_recurring ? '<span class="muted">(recurring)</span>' : ''}</td>
+      <td>${escapeHtml(inv.client_name)}</td>
+      <td>
+        <select data-status="${inv.id}">
+          ${['draft','sent','paid','overdue','void'].map((s) => `<option value="${s}" ${s===inv.status?'selected':''}>${s}</option>`).join('')}
+        </select>
+      </td>
+      <td>${new Date(inv.issue_date).toISOString().slice(0,10)}</td>
+      <td>${money(inv.total_cents, inv.currency)}</td>
+      <td>
+        <button class="link-btn" data-pdf="${inv.id}">PDF</button>
+        ${inv.status === 'draft' ? `<button class="link-btn" data-del-invoice="${inv.id}" style="color:var(--red)">Delete</button>` : ''}
+      </td>
+    </tr>
+  `).join('') || `<tr><td colspan="6" class="muted">No invoices yet — create your first one below.</td></tr>`;
+
+  shell(`
+    <button class="link-btn" id="backBtn">&larr; Back to tools</button>
+    <h2 style="margin-top:8px">Invoice Generator</h2>
+    <div class="card" style="margin-bottom:20px;">${usageHtml}</div>
+    <div class="two-col">
+      <div>
+        <div class="card" style="margin-bottom:16px;">
+          <h4 style="margin-top:0">Clients</h4>
+          <table>${clientRows}</table>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">Add a client</h4>
+          <form id="newClientForm">
+            <div class="field"><label>Name</label><input id="nc_name" required></div>
+            <div class="field"><label>Email</label><input id="nc_email" type="email"></div>
+            <button class="btn btn-primary" style="width:100%">Add client</button>
+          </form>
+        </div>
+      </div>
+      <div>
+        <div class="card" style="margin-bottom:16px;">
+          <h4 style="margin-top:0">Invoices</h4>
+          <table>
+            <thead><tr><th>Number</th><th>Client</th><th>Status</th><th>Issued</th><th>Total</th><th></th></tr></thead>
+            <tbody>${invoiceRows}</tbody>
+          </table>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">New invoice</h4>
+          ${IG_CLIENTS.length === 0 ? '<p class="muted">Add a client first.</p>' : `
+          <form id="newInvoiceForm">
+            <div class="row">
+              <div class="field"><label>Client</label><select id="ni_client">${clientOptions}</select></div>
+              <div class="field"><label>Issue date</label><input id="ni_issue" type="date" value="${new Date().toISOString().slice(0,10)}"></div>
+              <div class="field"><label>Due date</label><input id="ni_due" type="date"></div>
+            </div>
+            <div class="field"><label>Tax %</label><input id="ni_tax" type="number" min="0" step="0.01" value="0" style="max-width:120px"></div>
+            <label>Line items</label>
+            <div id="itemsWrap"></div>
+            <button type="button" class="link-btn" id="addItemBtn">+ Add line item</button>
+            <div class="field" style="margin-top:12px"><label>Notes</label><textarea id="ni_notes" rows="2"></textarea></div>
+            <div class="field">
+              <label><input type="checkbox" id="ni_recurring" style="width:auto; margin-right:6px;">Recurring invoice ${IG_USAGE.tier==='free' ? '(Pro feature)' : ''}</label>
+              <select id="ni_interval" style="display:none; margin-top:6px;">
+                <option value="weekly">Weekly</option><option value="monthly" selected>Monthly</option><option value="yearly">Yearly</option>
+              </select>
+            </div>
+            <p id="ni_total" class="muted" style="font-size:15px; font-weight:600;"></p>
+            <button class="btn btn-primary" style="width:100%">Create invoice</button>
+          </form>
+          `}
+        </div>
+      </div>
+    </div>
+  `);
+
+  $('backBtn').onclick = () => { VIEW = 'dashboard'; renderDashboard(); };
+  const upgradeLink = $('usageUpgrade');
+  if (upgradeLink) upgradeLink.onclick = () => openUpgradeModal('invoice-generator');
+
+  $('newClientForm').onsubmit = async (e) => {
+    e.preventDefault();
+    try {
+      await apiFetch('/invoice-generator/clients', { method: 'POST', body: JSON.stringify({ name: $('nc_name').value.trim(), email: $('nc_email').value.trim() }) });
+      showToast('Client added', 'success');
+      renderInvoiceGenerator();
+    } catch (err) { showToast(err.message, 'error'); }
+  };
+  app.querySelectorAll('[data-del-client]').forEach((btn) => btn.onclick = async () => {
+    try { await apiFetch(`/invoice-generator/clients/${btn.dataset.delClient}`, { method: 'DELETE' }); renderInvoiceGenerator(); }
+    catch (err) { showToast(err.message, 'error'); }
+  });
+  app.querySelectorAll('[data-status]').forEach((sel) => sel.onchange = async () => {
+    try {
+      await apiFetch(`/invoice-generator/invoices/${sel.dataset.status}/status`, { method: 'PATCH', body: JSON.stringify({ status: sel.value }) });
+      showToast('Status updated', 'success');
+      renderInvoiceGenerator();
+    } catch (err) { showToast(err.message, 'error'); }
+  });
+  app.querySelectorAll('[data-del-invoice]').forEach((btn) => btn.onclick = async () => {
+    try { await apiFetch(`/invoice-generator/invoices/${btn.dataset.delInvoice}`, { method: 'DELETE' }); renderInvoiceGenerator(); }
+    catch (err) { showToast(err.message, 'error'); }
+  });
+  app.querySelectorAll('[data-pdf]').forEach((btn) => btn.onclick = () => viewInvoicePdf(btn.dataset.pdf));
+
+  const recurringCheckbox = $('ni_recurring');
+  if (recurringCheckbox) {
+    recurringCheckbox.onchange = () => { $('ni_interval').style.display = recurringCheckbox.checked ? 'block' : 'none'; };
+    IG_LINE_ITEMS = [{ description: '', quantity: 1, unitPrice: '' }];
+    renderItemRows();
+    $('addItemBtn').onclick = () => { IG_LINE_ITEMS.push({ description: '', quantity: 1, unitPrice: '' }); renderItemRows(); };
+    $('newInvoiceForm').onsubmit = submitNewInvoice;
+    $('ni_tax').oninput = updateInvoiceTotalPreview;
+  }
+}
+
+function renderItemRows() {
+  const wrap = $('itemsWrap');
+  wrap.innerHTML = IG_LINE_ITEMS.map((item, i) => `
+    <div class="item-row">
+      <input placeholder="Description" data-item-desc="${i}" value="${escapeHtml(item.description)}">
+      <input type="number" min="0" step="0.01" placeholder="Qty" data-item-qty="${i}" value="${item.quantity}">
+      <input type="number" min="0" step="0.01" placeholder="Unit price" data-item-price="${i}" value="${item.unitPrice}">
+      <button type="button" class="link-btn" data-item-remove="${i}" style="color:var(--red)">✕</button>
+    </div>
+  `).join('');
+  wrap.querySelectorAll('[data-item-desc]').forEach((el) => el.oninput = () => { IG_LINE_ITEMS[el.dataset.itemDesc].description = el.value; });
+  wrap.querySelectorAll('[data-item-qty]').forEach((el) => el.oninput = () => { IG_LINE_ITEMS[el.dataset.itemQty].quantity = el.value; updateInvoiceTotalPreview(); });
+  wrap.querySelectorAll('[data-item-price]').forEach((el) => el.oninput = () => { IG_LINE_ITEMS[el.dataset.itemPrice].unitPrice = el.value; updateInvoiceTotalPreview(); });
+  wrap.querySelectorAll('[data-item-remove]').forEach((el) => el.onclick = () => {
+    if (IG_LINE_ITEMS.length > 1) { IG_LINE_ITEMS.splice(el.dataset.itemRemove, 1); renderItemRows(); updateInvoiceTotalPreview(); }
+  });
+  updateInvoiceTotalPreview();
+}
+
+function updateInvoiceTotalPreview() {
+  const subtotal = IG_LINE_ITEMS.reduce((sum, i) => sum + (Number(i.quantity) || 0) * (Number(i.unitPrice) || 0), 0);
+  const tax = Number($('ni_tax')?.value) || 0;
+  const total = subtotal * (1 + tax / 100);
+  const el = $('ni_total');
+  if (el) el.textContent = `Total: ${money(Math.round(total * 100), 'usd')}`;
+}
+
+async function submitNewInvoice(e) {
+  e.preventDefault();
+  const isRecurring = $('ni_recurring').checked;
+  const payload = {
+    clientId: Number($('ni_client').value),
+    issueDate: $('ni_issue').value || undefined,
+    dueDate: $('ni_due').value || undefined,
+    taxPercent: Number($('ni_tax').value) || 0,
+    notes: $('ni_notes').value.trim() || undefined,
+    isRecurring,
+    recurrenceInterval: isRecurring ? $('ni_interval').value : undefined,
+    items: IG_LINE_ITEMS.filter((i) => i.description).map((i) => ({
+      description: i.description, quantity: Number(i.quantity) || 1, unitPriceCents: Math.round(Number(i.unitPrice) * 100) || 0,
+    })),
+  };
+  try {
+    await apiFetch('/invoice-generator/invoices', { method: 'POST', body: JSON.stringify(payload) });
+    showToast('Invoice created', 'success');
+    renderInvoiceGenerator();
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
+}
+
+async function viewInvoicePdf(id) {
+  try {
+    const res = await fetch(`${API_BASE}/invoice-generator/invoices/${id}/pdf`, { headers: { Authorization: `Bearer ${TOKEN}` } });
+    if (!res.ok) throw new Error('Could not load PDF');
+    const blob = await res.blob();
+    window.open(URL.createObjectURL(blob), '_blank');
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
+}
+
+// ------------------------------------------------------- Appointment Booking
+async function renderAppointmentBooking() {
+  shell(`<p>Loading…</p>`);
+  let clients, services, appointments, usage, meta;
+  try {
+    [{ clients }, { services }, { appointments }, { usage }, meta] = await Promise.all([
+      apiFetch('/appointment-booking/clients'), apiFetch('/appointment-booking/services'),
+      apiFetch('/appointment-booking/appointments'), apiFetch('/appointment-booking/usage'),
+      getToolMeta('appointment-booking'),
+    ]);
+  } catch (err) { showToast(err.message, 'error'); return; }
+
+  const servicesAtCap = meta.limits.max_services != null && services.length >= meta.limits.max_services;
+  const clientOptions = clients.map((c) => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('');
+  const serviceOptions = services.map((s) => `<option value="${s.id}">${escapeHtml(s.name)} (${s.duration_minutes}min, ${money(s.price_cents, 'usd')})</option>`).join('');
+
+  const apptRows = appointments.map((a) => `
+    <tr>
+      <td>${new Date(a.start_time).toLocaleString()}</td>
+      <td>${escapeHtml(a.client_name)}</td>
+      <td>${escapeHtml(a.service_name)}</td>
+      <td><select data-appt-status="${a.id}">${['scheduled','completed','cancelled','no_show'].map((s) => `<option value="${s}" ${s===a.status?'selected':''}>${s}</option>`).join('')}</select></td>
+      <td>${(a.status === 'scheduled' || a.status === 'cancelled') ? `<button class="link-btn" data-appt-del="${a.id}" style="color:var(--red)">Delete</button>` : ''}</td>
+    </tr>
+  `).join('') || `<tr><td colspan="5" class="muted">No appointments yet.</td></tr>`;
+
+  shell(`
+    ${backLinkHtml()}
+    <h2 style="margin-top:8px">Appointment Booking</h2>
+    <div class="card" style="margin-bottom:20px;">${capBannerHtml('appointment-booking', usage.tier, usage.used, usage.cap, 'appointments this month')}</div>
+    <div class="two-col">
+      <div>
+        <div class="card" style="margin-bottom:16px;">
+          <h4 style="margin-top:0">Services</h4>
+          <table>${services.map((s) => `<tr><td>${escapeHtml(s.name)}<br><span class="muted">${s.duration_minutes}min &middot; ${money(s.price_cents,'usd')}</span></td><td><button class="link-btn" data-svc-del="${s.id}">Remove</button></td></tr>`).join('') || '<tr><td class="muted">No services yet.</td></tr>'}</table>
+          ${servicesAtCap ? `<p class="muted">Free plan is limited to ${meta.limits.max_services} service. <button class="link-btn" data-upgrade="appointment-booking">Upgrade for more &rarr;</button></p>` : `
+          <form id="newServiceForm">
+            <div class="field"><label>Service name</label><input id="ns_name" required></div>
+            <div class="row">
+              <div class="field"><label>Duration (min)</label><input id="ns_duration" type="number" value="30"></div>
+              <div class="field"><label>Price</label><input id="ns_price" type="number" step="0.01" placeholder="0.00"></div>
+            </div>
+            <button class="btn btn-primary" style="width:100%">Add service</button>
+          </form>`}
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">Clients</h4>
+          <table>${clients.map((c) => `<tr><td>${escapeHtml(c.name)}</td><td><button class="link-btn" data-client-del="${c.id}">Delete</button></td></tr>`).join('') || '<tr><td class="muted">No clients yet.</td></tr>'}</table>
+          <form id="newClientForm" style="margin-top:10px;">
+            <div class="field"><label>Name</label><input id="nc_name" required></div>
+            <button class="btn btn-primary" style="width:100%">Add client</button>
+          </form>
+        </div>
+      </div>
+      <div>
+        <div class="card" style="margin-bottom:16px;">
+          <h4 style="margin-top:0">Appointments</h4>
+          <table><thead><tr><th>When</th><th>Client</th><th>Service</th><th>Status</th><th></th></tr></thead><tbody>${apptRows}</tbody></table>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">Book an appointment</h4>
+          ${clients.length === 0 || services.length === 0 ? '<p class="muted">Add a client and a service first.</p>' : `
+          <form id="newApptForm">
+            <div class="field"><label>Client</label><select id="na_client">${clientOptions}</select></div>
+            <div class="field"><label>Service</label><select id="na_service">${serviceOptions}</select></div>
+            <div class="field"><label>Start time</label><input id="na_start" type="datetime-local" required></div>
+            <div class="field"><label>Notes</label><textarea id="na_notes" rows="2"></textarea></div>
+            <button class="btn btn-primary" style="width:100%">Book</button>
+          </form>`}
+        </div>
+      </div>
+    </div>
+  `);
+  wireBackLink(); wireUpgradeLinks();
+
+  $('newClientForm').onsubmit = async (e) => { e.preventDefault(); try { await apiFetch('/appointment-booking/clients', { method: 'POST', body: JSON.stringify({ name: $('nc_name').value.trim() }) }); renderAppointmentBooking(); } catch (err) { showToast(err.message, 'error'); } };
+  app.querySelectorAll('[data-client-del]').forEach((b) => b.onclick = async () => { try { await apiFetch(`/appointment-booking/clients/${b.dataset.clientDel}`, { method: 'DELETE' }); renderAppointmentBooking(); } catch (err) { showToast(err.message, 'error'); } });
+
+  const svcForm = $('newServiceForm');
+  if (svcForm) svcForm.onsubmit = async (e) => {
+    e.preventDefault();
+    try {
+      await apiFetch('/appointment-booking/services', { method: 'POST', body: JSON.stringify({ name: $('ns_name').value.trim(), durationMinutes: Number($('ns_duration').value), priceCents: Math.round(Number($('ns_price').value) * 100) || 0 }) });
+      renderAppointmentBooking();
+    } catch (err) { showToast(err.message, 'error'); }
+  };
+  app.querySelectorAll('[data-svc-del]').forEach((b) => b.onclick = async () => { try { await apiFetch(`/appointment-booking/services/${b.dataset.svcDel}`, { method: 'DELETE' }); renderAppointmentBooking(); } catch (err) { showToast(err.message, 'error'); } });
+
+  const apptForm = $('newApptForm');
+  if (apptForm) apptForm.onsubmit = async (e) => {
+    e.preventDefault();
+    try {
+      await apiFetch('/appointment-booking/appointments', { method: 'POST', body: JSON.stringify({
+        clientId: Number($('na_client').value), serviceId: Number($('na_service').value),
+        startTime: new Date($('na_start').value).toISOString(), notes: $('na_notes').value.trim() || undefined,
+      }) });
+      showToast('Appointment booked', 'success');
+      renderAppointmentBooking();
+    } catch (err) { showToast(err.message, 'error'); }
+  };
+  app.querySelectorAll('[data-appt-status]').forEach((sel) => sel.onchange = async () => { try { await apiFetch(`/appointment-booking/appointments/${sel.dataset.apptStatus}/status`, { method: 'PATCH', body: JSON.stringify({ status: sel.value }) }); renderAppointmentBooking(); } catch (err) { showToast(err.message, 'error'); } });
+  app.querySelectorAll('[data-appt-del]').forEach((b) => b.onclick = async () => { try { await apiFetch(`/appointment-booking/appointments/${b.dataset.apptDel}`, { method: 'DELETE' }); renderAppointmentBooking(); } catch (err) { showToast(err.message, 'error'); } });
+}
+
+// ------------------------------------------------------------ Expense Tracker
+async function renderExpenseTracker() {
+  shell(`<p>Loading…</p>`);
+  let expenses, usage, summary, meta;
+  try {
+    [{ expenses }, { usage }, { summary }, meta] = await Promise.all([
+      apiFetch('/expense-tracker/expenses'), apiFetch('/expense-tracker/usage'),
+      apiFetch('/expense-tracker/summary'), getToolMeta('expense-tracker'),
+    ]);
+  } catch (err) { showToast(err.message, 'error'); return; }
+
+  const canBudget = usage.tier === 'pro' || meta.isOwnerBypass;
+  const rows = expenses.map((e) => `
+    <tr><td>${new Date(e.expense_date).toISOString().slice(0,10)}</td><td>${escapeHtml(e.category)}</td><td>${money(e.amount_cents,'usd')}</td>
+    <td class="muted">${escapeHtml(e.note || '')}</td><td><button class="link-btn" data-exp-del="${e.id}" style="color:var(--red)">Delete</button></td></tr>
+  `).join('') || `<tr><td colspan="5" class="muted">No expenses yet.</td></tr>`;
+
+  const summaryRows = summary.categories.map((c) => `
+    <tr><td>${escapeHtml(c.category)}</td><td>${money(c.totalCents,'usd')}</td>
+    <td>${c.budgetCents != null ? money(c.budgetCents,'usd') : '&mdash;'}</td>
+    <td>${c.overBudget ? '<span class="status-pill status-overdue">over budget</span>' : (c.budgetCents != null ? '<span class="status-pill status-paid">within budget</span>' : '')}</td></tr>
+  `).join('') || `<tr><td colspan="4" class="muted">No expenses this month yet.</td></tr>`;
+
+  shell(`
+    ${backLinkHtml()}
+    <h2 style="margin-top:8px">Expense Tracker</h2>
+    <div class="card" style="margin-bottom:20px;">${capBannerHtml('expense-tracker', usage.tier, usage.used, usage.cap, 'expenses this month')}</div>
+    <div class="two-col">
+      <div>
+        <div class="card" style="margin-bottom:16px;">
+          <h4 style="margin-top:0">Add expense</h4>
+          <form id="newExpenseForm">
+            <div class="field"><label>Category</label><input id="ne_category" placeholder="e.g. Office, Travel" required></div>
+            <div class="field"><label>Amount</label><input id="ne_amount" type="number" step="0.01" required></div>
+            <div class="field"><label>Date</label><input id="ne_date" type="date" value="${new Date().toISOString().slice(0,10)}"></div>
+            <div class="field"><label>Note</label><input id="ne_note"></div>
+            <button class="btn btn-primary" style="width:100%">Add expense</button>
+          </form>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">Budgets ${canBudget ? '' : '<span class="badge badge-pro">Pro</span>'}</h4>
+          ${canBudget ? `
+          <form id="newBudgetForm">
+            <div class="field"><label>Category</label><input id="nb_category" required></div>
+            <div class="field"><label>Monthly limit</label><input id="nb_limit" type="number" step="0.01" required></div>
+            <button class="btn" style="width:100%">Set budget</button>
+          </form>` : `<p class="muted">Set a monthly spending limit per category and get flagged when you go over.</p><button class="link-btn" data-upgrade="expense-tracker">Upgrade to Pro &rarr;</button>`}
+        </div>
+      </div>
+      <div>
+        <div class="card" style="margin-bottom:16px;">
+          <h4 style="margin-top:0">This month by category</h4>
+          <table><thead><tr><th>Category</th><th>Spent</th><th>Budget</th><th></th></tr></thead><tbody>${summaryRows}</tbody></table>
+          <p style="margin-top:10px; font-weight:600;">Total: ${money(summary.grandTotalCents,'usd')}</p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">All expenses</h4>
+          <table><thead><tr><th>Date</th><th>Category</th><th>Amount</th><th>Note</th><th></th></tr></thead><tbody>${rows}</tbody></table>
+        </div>
+      </div>
+    </div>
+  `);
+  wireBackLink(); wireUpgradeLinks();
+
+  $('newExpenseForm').onsubmit = async (e) => {
+    e.preventDefault();
+    try {
+      await apiFetch('/expense-tracker/expenses', { method: 'POST', body: JSON.stringify({
+        category: $('ne_category').value.trim(), amountCents: Math.round(Number($('ne_amount').value) * 100),
+        expenseDate: $('ne_date').value, note: $('ne_note').value.trim() || undefined,
+      }) });
+      renderExpenseTracker();
+    } catch (err) { showToast(err.message, 'error'); }
+  };
+  app.querySelectorAll('[data-exp-del]').forEach((b) => b.onclick = async () => { try { await apiFetch(`/expense-tracker/expenses/${b.dataset.expDel}`, { method: 'DELETE' }); renderExpenseTracker(); } catch (err) { showToast(err.message, 'error'); } });
+  const budgetForm = $('newBudgetForm');
+  if (budgetForm) budgetForm.onsubmit = async (e) => {
+    e.preventDefault();
+    try {
+      await apiFetch('/expense-tracker/budgets', { method: 'POST', body: JSON.stringify({ category: $('nb_category').value.trim(), monthlyLimitCents: Math.round(Number($('nb_limit').value) * 100) }) });
+      renderExpenseTracker();
+    } catch (err) { showToast(err.message, 'error'); }
+  };
+}
+
+// ------------------------------------------------------- Membership Management
+async function renderMembershipManagement() {
+  shell(`<p>Loading…</p>`);
+  let members, meta;
+  try { [{ members }, meta] = await Promise.all([apiFetch('/membership-management/members'), getToolMeta('membership-management')]); }
+  catch (err) { showToast(err.message, 'error'); return; }
+
+  const statusPill = { active: 'paid', expiring_soon: 'sent', expired: 'overdue', no_payment: 'draft' };
+  const rows = members.map((m) => `
+    <tr>
+      <td>${escapeHtml(m.name)}<br><span class="muted">${escapeHtml(m.membership_type)}</span></td>
+      <td><span class="status-pill status-${statusPill[m.membership_status]}">${m.membership_status.replace('_',' ')}</span></td>
+      <td>${m.current_period_end ? new Date(m.current_period_end).toISOString().slice(0,10) : '&mdash;'}</td>
+      <td><button class="link-btn" data-pay="${m.id}">Record payment</button> <button class="link-btn" data-mem-del="${m.id}" style="color:var(--red)">Remove</button></td>
+    </tr>
+  `).join('') || `<tr><td colspan="4" class="muted">No members yet.</td></tr>`;
+
+  shell(`
+    ${backLinkHtml()}
+    <h2 style="margin-top:8px">Membership Management</h2>
+    <div class="card" style="margin-bottom:20px;">${capBannerHtml('membership-management', meta.tier, members.length, meta.limits.max_members, 'members')}</div>
+    <div class="two-col">
+      <div>
+        <div class="card">
+          <h4 style="margin-top:0">Add member</h4>
+          <form id="newMemberForm">
+            <div class="field"><label>Name</label><input id="nm_name" required></div>
+            <div class="field"><label>Membership type</label><input id="nm_type" value="standard"></div>
+            <div class="field"><label>Email</label><input id="nm_email" type="email"></div>
+            <button class="btn btn-primary" style="width:100%">Add member</button>
+          </form>
+        </div>
+      </div>
+      <div>
+        <div class="card">
+          <h4 style="margin-top:0">Members</h4>
+          <table><thead><tr><th>Member</th><th>Status</th><th>Paid through</th><th></th></tr></thead><tbody>${rows}</tbody></table>
+        </div>
+      </div>
+    </div>
+  `);
+  wireBackLink(); wireUpgradeLinks();
+
+  $('newMemberForm').onsubmit = async (e) => {
+    e.preventDefault();
+    try {
+      await apiFetch('/membership-management/members', { method: 'POST', body: JSON.stringify({ name: $('nm_name').value.trim(), membershipType: $('nm_type').value.trim(), email: $('nm_email').value.trim() || undefined }) });
+      renderMembershipManagement();
+    } catch (err) { showToast(err.message, 'error'); }
+  };
+  app.querySelectorAll('[data-mem-del]').forEach((b) => b.onclick = async () => { try { await apiFetch(`/membership-management/members/${b.dataset.memDel}`, { method: 'DELETE' }); renderMembershipManagement(); } catch (err) { showToast(err.message, 'error'); } });
+  app.querySelectorAll('[data-pay]').forEach((b) => b.onclick = () => openRecordPaymentModal(b.dataset.pay));
+}
+
+function openRecordPaymentModal(memberId) {
+  const backdrop = document.createElement('div');
+  backdrop.className = 'modal-backdrop';
+  const today = new Date().toISOString().slice(0, 10);
+  const nextMonth = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10);
+  backdrop.innerHTML = `
+    <div class="modal">
+      <h3 style="margin-top:0">Record payment</h3>
+      <form id="paymentForm">
+        <div class="field"><label>Amount</label><input id="pf_amount" type="number" step="0.01" required></div>
+        <div class="row">
+          <div class="field"><label>Period start</label><input id="pf_start" type="date" value="${today}"></div>
+          <div class="field"><label>Period end</label><input id="pf_end" type="date" value="${nextMonth}"></div>
+        </div>
+        <button class="btn btn-primary" style="width:100%">Save payment</button>
+      </form>
+      <button class="btn" id="closeModal" style="width:100%; margin-top:8px;">Cancel</button>
+    </div>
+  `;
+  document.body.appendChild(backdrop);
+  $('closeModal').onclick = () => backdrop.remove();
+  $('paymentForm').onsubmit = async (e) => {
+    e.preventDefault();
+    try {
+      await apiFetch(`/membership-management/members/${memberId}/payments`, { method: 'POST', body: JSON.stringify({
+        amountCents: Math.round(Number($('pf_amount').value) * 100), periodStart: $('pf_start').value, periodEnd: $('pf_end').value,
+      }) });
+      backdrop.remove();
+      showToast('Payment recorded', 'success');
+      renderMembershipManagement();
+    } catch (err) { showToast(err.message, 'error'); }
+  };
+}
+
+// --------------------------------------------------- Employee Leave Management
+async function renderLeaveManagement() {
+  shell(`<p>Loading…</p>`);
+  let employees, requests, meta;
+  try {
+    [{ employees }, { requests }, meta] = await Promise.all([
+      apiFetch('/leave-management/employees'), apiFetch('/leave-management/requests'), getToolMeta('leave-management'),
+    ]);
+  } catch (err) { showToast(err.message, 'error'); return; }
+
+  const statusPill = { pending: 'sent', approved: 'paid', rejected: 'overdue' };
+  const employeeOptions = employees.map((e) => `<option value="${e.id}">${escapeHtml(e.name)}</option>`).join('');
+  const reqRows = requests.map((r) => `
+    <tr>
+      <td>${escapeHtml(r.employee_name)}</td>
+      <td>${dateOnly(r.start_date)} &rarr; ${dateOnly(r.end_date)}</td>
+      <td class="muted">${escapeHtml(r.reason || '')}</td>
+      <td><span class="status-pill status-${statusPill[r.status]}">${r.status}</span></td>
+      <td>${r.status === 'pending' ? `<button class="link-btn" data-decide="${r.id}:approved">Approve</button> <button class="link-btn" data-decide="${r.id}:rejected" style="color:var(--red)">Reject</button>` : ''}</td>
+    </tr>
+  `).join('') || `<tr><td colspan="5" class="muted">No leave requests yet.</td></tr>`;
+
+  shell(`
+    ${backLinkHtml()}
+    <h2 style="margin-top:8px">Employee Leave Management</h2>
+    <p class="muted" style="margin-top:-10px;">Employees don't have their own login on this platform yet — record requests here on their behalf and approve/reject them.</p>
+    <div class="card" style="margin-bottom:20px;">${capBannerHtml('leave-management', meta.tier, employees.length, meta.limits.max_employees, 'employees')}</div>
+    <div class="two-col">
+      <div>
+        <div class="card" style="margin-bottom:16px;">
+          <h4 style="margin-top:0">Employees</h4>
+          <table>${employees.map((e) => `<tr><td>${escapeHtml(e.name)}</td><td><button class="link-btn" data-emp-del="${e.id}">Remove</button></td></tr>`).join('') || '<tr><td class="muted">None yet.</td></tr>'}</table>
+          <form id="newEmployeeForm" style="margin-top:10px;">
+            <div class="field"><label>Name</label><input id="ne_name" required></div>
+            <button class="btn btn-primary" style="width:100%">Add employee</button>
+          </form>
+        </div>
+      </div>
+      <div>
+        <div class="card" style="margin-bottom:16px;">
+          <h4 style="margin-top:0">Leave requests</h4>
+          <table><thead><tr><th>Employee</th><th>Dates</th><th>Reason</th><th>Status</th><th></th></tr></thead><tbody>${reqRows}</tbody></table>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">New request</h4>
+          ${employees.length === 0 ? '<p class="muted">Add an employee first.</p>' : `
+          <form id="newRequestForm">
+            <div class="field"><label>Employee</label><select id="nr_emp">${employeeOptions}</select></div>
+            <div class="row">
+              <div class="field"><label>Start date</label><input id="nr_start" type="date" required></div>
+              <div class="field"><label>End date</label><input id="nr_end" type="date" required></div>
+            </div>
+            <div class="field"><label>Reason</label><input id="nr_reason"></div>
+            <button class="btn btn-primary" style="width:100%">Submit request</button>
+          </form>`}
+        </div>
+      </div>
+    </div>
+  `);
+  wireBackLink(); wireUpgradeLinks();
+
+  $('newEmployeeForm').onsubmit = async (e) => { e.preventDefault(); try { await apiFetch('/leave-management/employees', { method: 'POST', body: JSON.stringify({ name: $('ne_name').value.trim() }) }); renderLeaveManagement(); } catch (err) { showToast(err.message, 'error'); } };
+  app.querySelectorAll('[data-emp-del]').forEach((b) => b.onclick = async () => { try { await apiFetch(`/leave-management/employees/${b.dataset.empDel}`, { method: 'DELETE' }); renderLeaveManagement(); } catch (err) { showToast(err.message, 'error'); } });
+  const reqForm = $('newRequestForm');
+  if (reqForm) reqForm.onsubmit = async (e) => {
+    e.preventDefault();
+    try {
+      await apiFetch('/leave-management/requests', { method: 'POST', body: JSON.stringify({ employeeId: Number($('nr_emp').value), startDate: $('nr_start').value, endDate: $('nr_end').value, reason: $('nr_reason').value.trim() || undefined }) });
+      renderLeaveManagement();
+    } catch (err) { showToast(err.message, 'error'); }
+  };
+  app.querySelectorAll('[data-decide]').forEach((b) => b.onclick = async () => {
+    const [id, status] = b.dataset.decide.split(':');
+    try { await apiFetch(`/leave-management/requests/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) }); renderLeaveManagement(); } catch (err) { showToast(err.message, 'error'); }
+  });
+}
+
+// ------------------------------------------------------- Inventory Management
+async function renderInventoryManagement() {
+  shell(`<p>Loading…</p>`);
+  let products, meta;
+  try { [{ products }, meta] = await Promise.all([apiFetch('/inventory-management/products'), getToolMeta('inventory-management')]); }
+  catch (err) { showToast(err.message, 'error'); return; }
+
+  const lowStock = products.filter((p) => p.quantity_on_hand <= p.low_stock_threshold);
+  const rows = products.map((p) => `
+    <tr class="${p.quantity_on_hand <= p.low_stock_threshold ? 'status-overdue' : ''}">
+      <td>${escapeHtml(p.name)}<br><span class="muted">${escapeHtml(p.sku || '')}</span></td>
+      <td>${p.quantity_on_hand}</td><td>${money(p.price_cents,'usd')}</td>
+      <td>
+        <button class="link-btn" data-adjust="${p.id}:restock">+ Restock</button>
+        <button class="link-btn" data-adjust="${p.id}:sale">&minus; Sale</button>
+        <button class="link-btn" data-prod-del="${p.id}" style="color:var(--red)">Remove</button>
+      </td>
+    </tr>
+  `).join('') || `<tr><td colspan="4" class="muted">No products yet.</td></tr>`;
+
+  shell(`
+    ${backLinkHtml()}
+    <h2 style="margin-top:8px">Inventory Management</h2>
+    <div class="card" style="margin-bottom:20px;">${capBannerHtml('inventory-management', meta.tier, products.length, meta.limits.max_products, 'products')}</div>
+    ${lowStock.length ? `<div class="card" style="margin-bottom:20px; border-color:var(--red);"><b style="color:var(--red)">Low stock:</b> ${lowStock.map((p) => escapeHtml(p.name)).join(', ')}</div>` : ''}
+    <div class="two-col">
+      <div>
+        <div class="card">
+          <h4 style="margin-top:0">Add product</h4>
+          <form id="newProductForm">
+            <div class="field"><label>Name</label><input id="np_name" required></div>
+            <div class="field"><label>SKU</label><input id="np_sku"></div>
+            <div class="row">
+              <div class="field"><label>Price</label><input id="np_price" type="number" step="0.01"></div>
+              <div class="field"><label>Starting qty</label><input id="np_qty" type="number" value="0"></div>
+              <div class="field"><label>Low stock at</label><input id="np_threshold" type="number" value="5"></div>
+            </div>
+            <button class="btn btn-primary" style="width:100%">Add product</button>
+          </form>
+        </div>
+      </div>
+      <div>
+        <div class="card">
+          <h4 style="margin-top:0">Products</h4>
+          <table><thead><tr><th>Product</th><th>Qty</th><th>Price</th><th></th></tr></thead><tbody>${rows}</tbody></table>
+        </div>
+      </div>
+    </div>
+  `);
+  wireBackLink(); wireUpgradeLinks();
+
+  $('newProductForm').onsubmit = async (e) => {
+    e.preventDefault();
+    try {
+      await apiFetch('/inventory-management/products', { method: 'POST', body: JSON.stringify({
+        name: $('np_name').value.trim(), sku: $('np_sku').value.trim() || undefined,
+        priceCents: Math.round(Number($('np_price').value) * 100) || 0, quantityOnHand: Number($('np_qty').value) || 0, lowStockThreshold: Number($('np_threshold').value) || 5,
+      }) });
+      renderInventoryManagement();
+    } catch (err) { showToast(err.message, 'error'); }
+  };
+  app.querySelectorAll('[data-prod-del]').forEach((b) => b.onclick = async () => { try { await apiFetch(`/inventory-management/products/${b.dataset.prodDel}`, { method: 'DELETE' }); renderInventoryManagement(); } catch (err) { showToast(err.message, 'error'); } });
+  app.querySelectorAll('[data-adjust]').forEach((b) => b.onclick = () => {
+    const [id, reason] = b.dataset.adjust.split(':');
+    openStockAdjustModal(id, reason);
+  });
+}
+
+function openStockAdjustModal(productId, reason) {
+  const backdrop = document.createElement('div');
+  backdrop.className = 'modal-backdrop';
+  backdrop.innerHTML = `
+    <div class="modal">
+      <h3 style="margin-top:0">${reason === 'restock' ? 'Restock' : 'Record a sale'}</h3>
+      <form id="adjustForm">
+        <div class="field"><label>Quantity</label><input id="adj_qty" type="number" min="1" step="1" required autofocus></div>
+        <div class="field"><label>Note (optional)</label><input id="adj_note"></div>
+        <button class="btn btn-primary" style="width:100%">${reason === 'restock' ? 'Add stock' : 'Remove stock'}</button>
+      </form>
+      <button class="btn" id="closeModal" style="width:100%; margin-top:8px;">Cancel</button>
+    </div>
+  `;
+  document.body.appendChild(backdrop);
+  $('closeModal').onclick = () => backdrop.remove();
+  $('adjustForm').onsubmit = async (e) => {
+    e.preventDefault();
+    const qty = Number($('adj_qty').value);
+    if (!qty) return;
+    try {
+      await apiFetch(`/inventory-management/products/${productId}/adjust`, { method: 'POST', body: JSON.stringify({
+        changeQty: reason === 'restock' ? qty : -qty, reason, note: $('adj_note').value.trim() || undefined,
+      }) });
+      backdrop.remove();
+      renderInventoryManagement();
+    } catch (err) { showToast(err.message, 'error'); }
+  };
+}
+
+// ----------------------------------------------------------- Staff Attendance
+async function renderStaffAttendance() {
+  shell(`<p>Loading…</p>`);
+  let employees, records, kioskToken, meta;
+  try {
+    [{ employees }, { records }, kioskToken, meta] = await Promise.all([
+      apiFetch('/staff-attendance/employees'), apiFetch('/staff-attendance/records'),
+      apiFetch('/staff-attendance/kiosk-token').then((r) => r.token), getToolMeta('staff-attendance'),
+    ]);
+  } catch (err) { showToast(err.message, 'error'); return; }
+
+  const kioskUrl = `${window.location.origin}${window.location.pathname.replace(/index\.html$/, '')}kiosk.html?token=${kioskToken}`;
+  const canExport = meta.tier === 'pro' || meta.isOwnerBypass;
+  const rows = records.map((r) => `
+    <tr><td>${dateOnly(r.work_date)}</td><td>${escapeHtml(r.employee_name)}</td>
+    <td>${r.check_in_time ? new Date(r.check_in_time).toLocaleTimeString() : '&mdash;'}</td>
+    <td>${r.check_out_time ? new Date(r.check_out_time).toLocaleTimeString() : '&mdash;'}</td>
+    <td><span class="status-pill status-${r.status==='present'?'paid':r.status==='late'?'sent':'overdue'}">${r.status}</span></td></tr>
+  `).join('') || `<tr><td colspan="5" class="muted">No attendance recorded yet.</td></tr>`;
+
+  shell(`
+    ${backLinkHtml()}
+    <h2 style="margin-top:8px">Staff Attendance</h2>
+    <div class="card" style="margin-bottom:20px;">${capBannerHtml('staff-attendance', meta.tier, employees.length, meta.limits.max_employees, 'employees')}</div>
+    <div class="card" style="margin-bottom:20px;">
+      <b>Kiosk check-in link</b> — employees open this on a shared tablet/phone and enter their code to check in/out. No login needed.
+      <div class="row" style="margin-top:8px;"><input readonly value="${escapeHtml(kioskUrl)}" onclick="this.select()"> <button class="btn btn-sm" id="rotateKiosk">Rotate link</button></div>
+      ${canExport ? `<p style="margin-top:10px;"><a href="#" id="exportCsv">Download payroll CSV &rarr;</a></p>` : `<p class="muted" style="margin-top:10px;">Payroll CSV export is a Pro feature. <button class="link-btn" data-upgrade="staff-attendance">Upgrade &rarr;</button></p>`}
+    </div>
+    <div class="two-col">
+      <div>
+        <div class="card">
+          <h4 style="margin-top:0">Employees</h4>
+          <table>${employees.map((e) => `<tr><td>${escapeHtml(e.name)}<br><span class="muted">code: ${escapeHtml(e.employee_code)}</span></td><td><button class="link-btn" data-att-emp-del="${e.id}">Remove</button></td></tr>`).join('') || '<tr><td class="muted">None yet.</td></tr>'}</table>
+          <form id="newStaffForm" style="margin-top:10px;">
+            <div class="field"><label>Name</label><input id="ns_name" required></div>
+            <div class="field"><label>Employee code (they'll type this at the kiosk)</label><input id="ns_code" required></div>
+            <button class="btn btn-primary" style="width:100%">Add employee</button>
+          </form>
+        </div>
+      </div>
+      <div>
+        <div class="card">
+          <h4 style="margin-top:0">Recent attendance</h4>
+          <table><thead><tr><th>Date</th><th>Employee</th><th>In</th><th>Out</th><th>Status</th></tr></thead><tbody>${rows}</tbody></table>
+        </div>
+      </div>
+    </div>
+  `);
+  wireBackLink(); wireUpgradeLinks();
+
+  $('newStaffForm').onsubmit = async (e) => {
+    e.preventDefault();
+    try {
+      await apiFetch('/staff-attendance/employees', { method: 'POST', body: JSON.stringify({ name: $('ns_name').value.trim(), employeeCode: $('ns_code').value.trim() }) });
+      renderStaffAttendance();
+    } catch (err) { showToast(err.message, 'error'); }
+  };
+  app.querySelectorAll('[data-att-emp-del]').forEach((b) => b.onclick = async () => { try { await apiFetch(`/staff-attendance/employees/${b.dataset.attEmpDel}`, { method: 'DELETE' }); renderStaffAttendance(); } catch (err) { showToast(err.message, 'error'); } });
+  $('rotateKiosk').onclick = async () => { try { await apiFetch('/staff-attendance/kiosk-token/rotate', { method: 'POST' }); showToast('Kiosk link rotated — the old link no longer works', 'success'); renderStaffAttendance(); } catch (err) { showToast(err.message, 'error'); } };
+  const exportLink = $('exportCsv');
+  if (exportLink) exportLink.onclick = async (e) => {
+    e.preventDefault();
+    try {
+      const res = await fetch(`${API_BASE}/staff-attendance/export.csv`, { headers: { Authorization: `Bearer ${TOKEN}` } });
+      if (!res.ok) { const body = await res.json().catch(() => ({})); throw new Error(body.error || 'Export failed'); }
+      const blob = await res.blob();
+      window.open(URL.createObjectURL(blob), '_blank');
+    } catch (err) { showToast(err.message, 'error'); }
+  };
+}
+
+// ---------------------------------------------------------- Property Management
+async function renderPropertyManagement() {
+  shell(`<p>Loading…</p>`);
+  let properties, maintenanceRequests, meta;
+  try {
+    [{ properties }, { requests: maintenanceRequests }, meta] = await Promise.all([
+      apiFetch('/property-management/properties'), apiFetch('/property-management/maintenance-requests'), getToolMeta('property-management'),
+    ]);
+  } catch (err) { showToast(err.message, 'error'); return; }
+
+  const maintRows = maintenanceRequests.map((r) => `
+    <tr><td>${escapeHtml(r.property_name)} / ${escapeHtml(r.unit_label)}</td><td>${escapeHtml(r.description)}</td>
+    <td><select data-maint-status="${r.id}">${['open','in_progress','resolved'].map((s) => `<option value="${s}" ${s===r.status?'selected':''}>${s}</option>`).join('')}</select></td></tr>
+  `).join('') || `<tr><td colspan="3" class="muted">No maintenance requests.</td></tr>`;
+
+  shell(`
+    ${backLinkHtml()}
+    <h2 style="margin-top:8px">Property Management</h2>
+    <div class="card" style="margin-bottom:20px;">${capBannerHtml('property-management', meta.tier, properties.length, meta.limits.max_properties, 'properties')}</div>
+    <div class="two-col">
+      <div>
+        <div class="card" style="margin-bottom:16px;">
+          <h4 style="margin-top:0">Properties</h4>
+          <table>${properties.map((p) => `<tr><td>${escapeHtml(p.name)}<br><span class="muted">${p.unit_count} unit(s)</span></td><td><button class="link-btn" data-prop-open="${p.id}">Manage units</button></td></tr>`).join('') || '<tr><td class="muted">None yet.</td></tr>'}</table>
+          <form id="newPropertyForm" style="margin-top:10px;">
+            <div class="field"><label>Property name</label><input id="npr_name" required></div>
+            <div class="field"><label>Address</label><input id="npr_address"></div>
+            <button class="btn btn-primary" style="width:100%">Add property</button>
+          </form>
+        </div>
+        <div id="unitsPanel"></div>
+      </div>
+      <div>
+        <div class="card">
+          <h4 style="margin-top:0">Maintenance requests</h4>
+          <table><thead><tr><th>Where</th><th>Issue</th><th>Status</th></tr></thead><tbody>${maintRows}</tbody></table>
+        </div>
+      </div>
+    </div>
+  `);
+  wireBackLink(); wireUpgradeLinks();
+
+  $('newPropertyForm').onsubmit = async (e) => {
+    e.preventDefault();
+    try { await apiFetch('/property-management/properties', { method: 'POST', body: JSON.stringify({ name: $('npr_name').value.trim(), address: $('npr_address').value.trim() || undefined }) }); renderPropertyManagement(); }
+    catch (err) { showToast(err.message, 'error'); }
+  };
+  app.querySelectorAll('[data-maint-status]').forEach((sel) => sel.onchange = async () => { try { await apiFetch(`/property-management/maintenance-requests/${sel.dataset.maintStatus}/status`, { method: 'PATCH', body: JSON.stringify({ status: sel.value }) }); renderPropertyManagement(); } catch (err) { showToast(err.message, 'error'); } });
+  app.querySelectorAll('[data-prop-open]').forEach((b) => b.onclick = () => renderUnitsPanel(b.dataset.propOpen));
+}
+
+async function renderUnitsPanel(propertyId) {
+  let units;
+  try { ({ units } = await apiFetch(`/property-management/properties/${propertyId}/units`)); } catch (err) { return showToast(err.message, 'error'); }
+  const panel = $('unitsPanel');
+  panel.innerHTML = `
+    <div class="card">
+      <h4 style="margin-top:0">Units</h4>
+      <table>${units.map((u) => `<tr><td>${escapeHtml(u.unit_label)}<br><span class="muted">${money(u.monthly_rent_cents,'usd')}/mo</span></td><td><button class="link-btn" data-unit-open="${u.id}">Tenants &amp; maintenance</button></td></tr>`).join('') || '<tr><td class="muted">No units yet.</td></tr>'}</table>
+      <form id="newUnitForm" style="margin-top:10px;">
+        <div class="field"><label>Unit label</label><input id="nu_label" required></div>
+        <div class="field"><label>Monthly rent</label><input id="nu_rent" type="number" step="0.01"></div>
+        <button class="btn btn-primary" style="width:100%">Add unit</button>
+      </form>
+      <div id="unitDetailPanel"></div>
+    </div>
+  `;
+  $('newUnitForm').onsubmit = async (e) => {
+    e.preventDefault();
+    try {
+      await apiFetch(`/property-management/properties/${propertyId}/units`, { method: 'POST', body: JSON.stringify({ unitLabel: $('nu_label').value.trim(), monthlyRentCents: Math.round(Number($('nu_rent').value) * 100) || 0 }) });
+      renderUnitsPanel(propertyId);
+    } catch (err) { showToast(err.message, 'error'); }
+  };
+  panel.querySelectorAll('[data-unit-open]').forEach((b) => b.onclick = () => renderUnitDetailPanel(b.dataset.unitOpen));
+}
+
+async function renderUnitDetailPanel(unitId) {
+  let tenants;
+  try { ({ tenants } = await apiFetch(`/property-management/units/${unitId}/tenants`)); } catch (err) { return showToast(err.message, 'error'); }
+  const panel = $('unitDetailPanel');
+  panel.innerHTML = `
+    <hr style="border:none; border-top:1px solid var(--border); margin:14px 0;">
+    <b>Tenants</b>
+    <table>${tenants.map((t) => `<tr><td>${escapeHtml(t.name)}</td></tr>`).join('') || '<tr><td class="muted">No tenants yet.</td></tr>'}</table>
+    <form id="newTenantForm" style="margin-top:8px;">
+      <div class="field"><label>Tenant name</label><input id="nt_name" required></div>
+      <button class="btn btn-sm">Add tenant</button>
+    </form>
+    <b style="display:block; margin-top:14px;">Report an issue</b>
+    <form id="newMaintForm" style="margin-top:8px;">
+      <div class="field"><label>Description</label><input id="nmt_desc" required></div>
+      <button class="btn btn-sm">Log maintenance request</button>
+    </form>
+  `;
+  $('newTenantForm').onsubmit = async (e) => {
+    e.preventDefault();
+    try { await apiFetch(`/property-management/units/${unitId}/tenants`, { method: 'POST', body: JSON.stringify({ name: $('nt_name').value.trim() }) }); renderUnitDetailPanel(unitId); }
+    catch (err) { showToast(err.message, 'error'); }
+  };
+  $('newMaintForm').onsubmit = async (e) => {
+    e.preventDefault();
+    try {
+      await apiFetch(`/property-management/units/${unitId}/maintenance-requests`, { method: 'POST', body: JSON.stringify({ description: $('nmt_desc').value.trim() }) });
+      showToast('Maintenance request logged', 'success');
+      renderPropertyManagement();
+    } catch (err) { showToast(err.message, 'error'); }
+  };
+}
+
+// ------------------------------------------------------------ Queue Management
+async function renderQueueManagement() {
+  shell(`<p>Loading…</p>`);
+  let queues, meta;
+  try { [{ queues }, meta] = await Promise.all([apiFetch('/queue-management/queues'), getToolMeta('queue-management')]); }
+  catch (err) { showToast(err.message, 'error'); return; }
+
+  shell(`
+    ${backLinkHtml()}
+    <h2 style="margin-top:8px">Queue Management</h2>
+    <div class="card" style="margin-bottom:20px;">${capBannerHtml('queue-management', meta.tier, queues.length, meta.limits.max_active_queues, 'active queues')}</div>
+    <div class="card" style="margin-bottom:20px;">
+      <h4 style="margin-top:0">Queues</h4>
+      <table>${queues.map((q) => `<tr><td>${escapeHtml(q.name)}<br><span class="muted">${q.waiting_count} waiting</span></td><td><button class="link-btn" data-queue-open="${q.id}">Open</button> <button class="link-btn" data-queue-del="${q.id}" style="color:var(--red)">Deactivate</button></td></tr>`).join('') || '<tr><td class="muted">No queues yet.</td></tr>'}</table>
+      <form id="newQueueForm" style="margin-top:10px;">
+        <div class="field"><label>Queue name</label><input id="nq_name" placeholder="e.g. General" required></div>
+        <button class="btn btn-primary" style="width:100%">Create queue</button>
+      </form>
+    </div>
+    <div id="queueDetailPanel"></div>
+  `);
+  wireBackLink(); wireUpgradeLinks();
+
+  $('newQueueForm').onsubmit = async (e) => { e.preventDefault(); try { await apiFetch('/queue-management/queues', { method: 'POST', body: JSON.stringify({ name: $('nq_name').value.trim() }) }); renderQueueManagement(); } catch (err) { showToast(err.message, 'error'); } };
+  app.querySelectorAll('[data-queue-del]').forEach((b) => b.onclick = async () => { try { await apiFetch(`/queue-management/queues/${b.dataset.queueDel}`, { method: 'DELETE' }); renderQueueManagement(); } catch (err) { showToast(err.message, 'error'); } });
+  app.querySelectorAll('[data-queue-open]').forEach((b) => b.onclick = () => renderQueueDetailPanel(b.dataset.queueOpen, queues.find((q) => String(q.id) === b.dataset.queueOpen)));
+}
+
+async function renderQueueDetailPanel(queueId, queue) {
+  let tickets;
+  try { ({ tickets } = await apiFetch(`/queue-management/queues/${queueId}/tickets`)); } catch (err) { return showToast(err.message, 'error'); }
+  const joinUrl = `${window.location.origin}${window.location.pathname.replace(/index\.html$/, '')}join-queue.html?token=${queue.join_token}`;
+  const panel = $('queueDetailPanel');
+  panel.innerHTML = `
+    <div class="card">
+      <h4 style="margin-top:0">${escapeHtml(queue.name)} — today's tickets</h4>
+      <div class="row" style="margin-bottom:12px;"><input readonly value="${escapeHtml(joinUrl)}" onclick="this.select()"> <button class="btn btn-sm" id="callNextBtn">Call next</button></div>
+      <table><thead><tr><th>#</th><th>Customer</th><th>Status</th><th></th></tr></thead><tbody>
+      ${tickets.map((t) => `<tr><td>${t.ticket_number}</td><td>${escapeHtml(t.customer_name || '')}</td>
+        <td><span class="status-pill status-${t.status==='served'?'paid':t.status==='called'?'sent':t.status==='cancelled'?'void':'draft'}">${t.status}</span></td>
+        <td>${t.status === 'called' ? `<button class="link-btn" data-serve="${t.id}">Mark served</button>` : ''}</td></tr>`).join('') || '<tr><td colspan="4" class="muted">No tickets yet today.</td></tr>'}
+      </tbody></table>
+    </div>
+  `;
+  $('callNextBtn').onclick = async () => {
+    try {
+      const { ticket } = await apiFetch(`/queue-management/queues/${queueId}/call-next`, { method: 'POST' });
+      if (!ticket) showToast('No one is waiting', '');
+      else showToast(`Now calling ticket #${ticket.ticket_number}`, 'success');
+      renderQueueDetailPanel(queueId, queue);
+    } catch (err) { showToast(err.message, 'error'); }
+  };
+  panel.querySelectorAll('[data-serve]').forEach((b) => b.onclick = async () => { try { await apiFetch(`/queue-management/tickets/${b.dataset.serve}/served`, { method: 'PATCH' }); renderQueueDetailPanel(queueId, queue); } catch (err) { showToast(err.message, 'error'); } });
+}
+
+// ------------------------------------------------------------- Boot -------
+function handleBillingRedirect() {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('billing') === 'success') showToast('Upgrade successful — welcome to Pro!', 'success');
+  if (params.get('billing') === 'cancelled') showToast('Upgrade cancelled — no changes made.', '');
+  if (params.has('billing')) window.history.replaceState({}, '', window.location.pathname);
+}
+
+async function renderRoot() {
+  if (!TOKEN || !USER) return renderAuth();
+  handleBillingRedirect();
+  if (VIEW === 'invoice-generator') return renderInvoiceGenerator();
+  return renderDashboard();
+}
+
+renderRoot();
+</script>
+</body>
+</html>

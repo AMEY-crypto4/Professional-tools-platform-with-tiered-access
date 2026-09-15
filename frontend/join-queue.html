@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Join Queue</title>
+<script src="config.js"></script>
+<style>
+  :root { --bg:#f4f5f7; --card:#fff; --text:#1c2333; --text2:#64748b; --border:#e2e6ec; --accent:#4f46e5; --green:#16a34a; --red:#dc2626; }
+  * { box-sizing: border-box; }
+  body { margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center; font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif; background:var(--bg); color:var(--text); }
+  .card { background:var(--card); border:1px solid var(--border); border-radius:16px; padding:32px; width:380px; max-width:92vw; text-align:center; }
+  input { width:100%; padding:12px; font-size:16px; text-align:center; border-radius:10px; border:1px solid var(--border); margin:12px 0; }
+  button { width:100%; padding:14px; font-size:16px; font-weight:700; border-radius:10px; border:none; background:var(--accent); color:#fff; cursor:pointer; }
+  .ticket { margin-top:20px; }
+  .ticket .number { font-size:56px; font-weight:800; color:var(--accent); }
+  .ticket .ahead { font-size:16px; color:var(--text2); margin-top:6px; }
+  .error { background:#fee2e2; color:#b91c1c; padding:14px; border-radius:10px; margin-top:16px; }
+  .muted { color:var(--text2); font-size:13px; }
+  [hidden] { display:none !important; }
+</style>
+</head>
+<body>
+<div class="card">
+  <h2 style="margin-top:0" id="title">Join the queue</h2>
+  <div id="joinView">
+    <p class="muted">Enter your name (optional) and take a ticket.</p>
+    <form id="joinForm">
+      <input id="name" placeholder="Your name (optional)" autocomplete="off">
+      <button type="submit">Take a ticket</button>
+    </form>
+  </div>
+  <div id="ticketView" hidden>
+    <div class="ticket">
+      <div class="muted">Your ticket</div>
+      <div class="number" id="ticketNumber"></div>
+      <div class="ahead" id="ahead"></div>
+    </div>
+    <button id="refreshBtn" style="margin-top:16px; background:#fff; color:var(--accent); border:1px solid var(--accent);">Refresh status</button>
+    <p class="muted" style="margin-top:10px;">This page does not send you a notification — check back and tap refresh.</p>
+  </div>
+  <div id="errorView"></div>
+</div>
+<script>
+const API_BASE = window.AACREATIONS_API_BASE || 'http://localhost:4000/api';
+const token = new URLSearchParams(window.location.search).get('token');
+const errorEl = document.getElementById('errorView');
+if (!token) {
+  errorEl.innerHTML = '<div class="error">This link is missing its queue token.</div>';
+  document.getElementById('joinView').hidden = true;
+}
+
+const STORAGE_KEY = `aac_queue_ticket_${token}`;
+async function showTicketStatus(ticketId) {
+  try {
+    const res = await fetch(`${API_BASE}/queue-management/public/${token}/tickets/${ticketId}`);
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Could not load ticket status');
+    document.getElementById('joinView').hidden = true;
+    document.getElementById('ticketView').hidden = false;
+    document.getElementById('ticketNumber').textContent = `#${data.ticket.ticket_number}`;
+    const t = data.ticket;
+    document.getElementById('ahead').textContent =
+      t.status === 'served' ? 'You have been served.' :
+      t.status === 'called' ? 'You are being called now!' :
+      t.status === 'cancelled' ? 'This ticket was cancelled.' :
+      `${t.peopleAhead} ${t.peopleAhead === 1 ? 'person' : 'people'} ahead of you`;
+  } catch (err) {
+    errorEl.innerHTML = `<div class="error">${err.message}</div>`;
+    localStorage.removeItem(STORAGE_KEY);
+  }
+}
+
+const existingTicketId = localStorage.getItem(STORAGE_KEY);
+if (existingTicketId) showTicketStatus(existingTicketId);
+
+document.getElementById('joinForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  try {
+    const res = await fetch(`${API_BASE}/queue-management/public/${token}/join`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ customerName: document.getElementById('name').value.trim() || undefined }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Could not join the queue');
+    localStorage.setItem(STORAGE_KEY, data.ticket.id);
+    showTicketStatus(data.ticket.id);
+  } catch (err) {
+    errorEl.innerHTML = `<div class="error">${err.message}</div>`;
+  }
+});
+document.getElementById('refreshBtn').addEventListener('click', () => {
+  const id = localStorage.getItem(STORAGE_KEY);
+  if (id) showTicketStatus(id);
+});
+</script>
+</body>
+</html>

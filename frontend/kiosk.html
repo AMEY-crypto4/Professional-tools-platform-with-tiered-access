@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Staff Check-In</title>
+<script src="config.js"></script>
+<style>
+  :root { --bg:#f4f5f7; --card:#fff; --text:#1c2333; --text2:#64748b; --border:#e2e6ec; --accent:#4f46e5; --green:#16a34a; --red:#dc2626; }
+  * { box-sizing: border-box; }
+  body { margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center; font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif; background:var(--bg); color:var(--text); }
+  .card { background:var(--card); border:1px solid var(--border); border-radius:16px; padding:32px; width:360px; max-width:92vw; text-align:center; }
+  input { width:100%; padding:14px; font-size:20px; text-align:center; border-radius:10px; border:1px solid var(--border); margin:16px 0; letter-spacing:.05em; }
+  button { width:100%; padding:14px; font-size:16px; font-weight:700; border-radius:10px; border:none; background:var(--accent); color:#fff; cursor:pointer; }
+  button:disabled { opacity:.6; }
+  .result { margin-top:18px; padding:14px; border-radius:10px; font-size:15px; }
+  .result.success { background:#dcfce7; color:#15803d; }
+  .result.error { background:#fee2e2; color:#b91c1c; }
+  .muted { color:var(--text2); font-size:13px; }
+</style>
+</head>
+<body>
+<div class="card">
+  <h2 style="margin-top:0">Staff Check-In</h2>
+  <p class="muted">Enter your employee code to check in or out.</p>
+  <form id="form">
+    <input id="code" placeholder="Employee code" autocomplete="off" autofocus required>
+    <button type="submit">Check In / Out</button>
+  </form>
+  <div id="result"></div>
+</div>
+<script>
+const API_BASE = window.AACREATIONS_API_BASE || 'http://localhost:4000/api';
+const token = new URLSearchParams(window.location.search).get('token');
+const resultEl = document.getElementById('result');
+if (!token) {
+  resultEl.innerHTML = '<div class="result error">This link is missing its kiosk token — ask your manager for the correct link.</div>';
+  document.getElementById('form').style.display = 'none';
+}
+document.getElementById('form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const code = document.getElementById('code').value.trim();
+  if (!code) return;
+  try {
+    const res = await fetch(`${API_BASE}/staff-attendance/kiosk/checkin`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token, employeeCode: code }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Something went wrong');
+    const label = data.action === 'checked_in' ? 'Checked in' : 'Checked out';
+    resultEl.innerHTML = `<div class="result success">${label}: ${data.employeeName} at ${new Date().toLocaleTimeString()}</div>`;
+  } catch (err) {
+    resultEl.innerHTML = `<div class="result error">${err.message}</div>`;
+  }
+  document.getElementById('code').value = '';
+});
+</script>
+</body>
+</html>
