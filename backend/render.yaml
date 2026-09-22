@@ -1,0 +1,36 @@
+services:
+  - type: web
+    name: aa-creations-api
+    runtime: node
+    plan: free
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: npm run migrate && npm start
+    envVars:
+      - key: DATABASE_URL
+        sync: false   # your Supabase connection string (pooled, port 6543)
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: 12h
+      - key: NODE_ENV
+        value: production
+      - key: OWNER_EMAILS
+        sync: false   # email(s) that get free Pro access to every tool
+      - key: CORS_ORIGINS
+        sync: false   # your Netlify frontend URL, e.g. https://your-site.netlify.app
+      - key: FRONTEND_URL
+        sync: false   # same Netlify URL — where checkout redirects back to
+      # Razorpay — leave unset and every tool still works free; upgrades
+      # return a clear "not configured" error until these are set.
+      - key: RAZORPAY_KEY_ID
+        sync: false
+      - key: RAZORPAY_KEY_SECRET
+        sync: false
+      - key: RAZORPAY_WEBHOOK_SECRET
+        sync: false
+      # Stripe — optional, only usable once you have account access.
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
